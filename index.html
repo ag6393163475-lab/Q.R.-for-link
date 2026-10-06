@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>QR Generator</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<style>
+:root{--bg:#000;--card:#0d0d0d;--line:#262626;--text:#f5f5f5;--muted:#8a8a8a;--accent:#fff;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%;background:var(--bg);color:var(--text);font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+body{display:flex;justify-content:center;padding:32px 16px}
+main{width:100%;max-width:440px}
+h1{font-size:28px;margin:0 0 6px;letter-spacing:-.02em}
+p.sub{color:var(--muted);margin:0 0 24px;font-size:15px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:20px}
+input{width:100%;padding:14px;border-radius:10px;border:1px solid var(--line);background:#000;color:var(--text);font-size:16px;outline:none}
+input:focus{border-color:var(--accent)}
+button{width:100%;margin-top:12px;padding:14px;border-radius:10px;border:0;background:var(--accent);color:#000;font-weight:600;font-size:16px;cursor:pointer}
+button:hover{opacity:.88}
+button.ghost{background:transparent;color:var(--text);border:1px solid var(--line)}
+.err{color:#ff6b6b;font-size:14px;margin-top:10px;min-height:18px}
+#result{display:none;margin-top:20px;text-align:center}
+#qr{display:inline-block;background:#fff;padding:16px;border-radius:12px}
+#qr img,#qr canvas{display:block}
+.target{color:var(--muted);font-size:13px;word-break:break-all;margin-top:14px}
+.hint{color:var(--muted);font-size:12px;margin-top:8px}
+</style>
+</head>
+<body>
+<main>
+  <h1>QR Generator</h1>
+  <p class="sub">Paste a link. Get a QR code that opens it when scanned.</p>
+  <div class="card">
+    <input id="url" type="text" placeholder="https://example.com" autocomplete="off" inputmode="url">
+    <button id="gen">Generate QR</button>
+    <div class="err" id="err"></div>
+    <div id="result">
+      <div id="qr"></div>
+      <div class="target" id="target"></div>
+      <button class="ghost" id="copy">Copy image</button>
+      <div class="hint" id="hint">Tip: right-click or long-press the QR to save it.</div>
+    </div>
+  </div>
+</main>
+<script>
+const $=id=>document.getElementById(id);
+function normalize(v){
+  v=v.trim(); if(!v) return null;
+  if(!/^https?:\/\//i.test(v)) v="https://"+v;
+  try{const u=new URL(v); if(!u.hostname.includes(".")&&u.hostname!=="localhost") return null; return u.href;}catch(e){return null}
+}
+function generate(){
+  const link=normalize($("url").value);
+  $("err").textContent="";
+  if(!link){$("err").textContent="Please enter a valid link.";$("result").style.display="none";return}
+  const box=$("qr"); box.innerHTML="";
+  try{
+    new QRCode(box,{text:link,width:240,height:240,colorDark:"#000000",colorLight:"#ffffff",correctLevel:QRCode.CorrectLevel.M});
+  }catch(e){$("err").textContent="Link is too long to encode.";return}
+  $("target").textContent=link;
+  $("result").style.display="block";
+}
+$("gen").onclick=generate;
+$("url").addEventListener("keydown",e=>{if(e.key==="Enter")generate()});
+$("copy").onclick=async()=>{
+  const c=$("qr").querySelector("canvas");
+  try{
+    const blob=await new Promise(r=>c.toBlob(r,"image/png"));
+    await navigator.clipboard.write([new ClipboardItem({"image/png":blob})]);
+    $("hint").textContent="Copied to clipboard.";
+  }catch(e){$("hint").textContent="Copy not supported here. Right-click or long-press the QR to save it."}
+};
+</script>
+</body>
+</html>
